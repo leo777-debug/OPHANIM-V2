@@ -302,7 +302,7 @@ export default function App() {
   const fetchAircraftFeed = useCallback(async (source: "aviation" | "militaryAviation") => {
     try {
       const endpoint = source === "militaryAviation" ? "military-aircraft" : "aircraft";
-      const resp = await fetch(`${API_BASE}/api/${endpoint}?region=${regionKey}`);
+      const resp = await fetch(`${API_BASE}/api/data?feed=${endpoint}&region=${regionKey}`);
       if (!resp.ok) return;
       const data = await resp.json();
       let count = 0;
@@ -338,7 +338,7 @@ export default function App() {
     if (!OSM_LAYER_KEYS.includes(key)) return;
     setLoadingLayers((prev) => new Set(prev).add(key));
     try {
-      const resp = await fetch(`${API_BASE}/api/osm?layer=${key}&region=${regionKey}`);
+      const resp = await fetch(`${API_BASE}/api/data?feed=osm&layer=${key}&region=${regionKey}`);
       const data = await resp.json();
       const nextEvents = data.events || [];
       setLayerEvents((prev) => [...prev.filter((event) => event.sourceLayer !== key), ...nextEvents]);
@@ -359,16 +359,16 @@ export default function App() {
     try {
       const query = `region=${regionKey}`;
       const [newsRes, cogRes, nasaRes, quakeRes, conflictRes, unrestRes, firmsRes, satRes, jammingRes, blackoutRes] = await Promise.all([
-        fetch(`${API_BASE}/api/news?${query}`).catch(() => null),
-        fetch(`${API_BASE}/api/cognition`).catch(() => null),
-        fetch(`${API_BASE}/api/nasa`).catch(() => null),
-        fetch(`${API_BASE}/api/earthquakes?${query}`).catch(() => null),
-        fetch(`${API_BASE}/api/conflicts?${query}`).catch(() => null),
-        fetch(`${API_BASE}/api/civil-unrest?${query}`).catch(() => null),
-        fetch(`${API_BASE}/api/firms?${query}`).catch(() => null),
-        fetch(`${API_BASE}/api/satellites?${query}`).catch(() => null),
-        fetch(`${API_BASE}/api/jamming?${query}`).catch(() => null),
-        fetch(`${API_BASE}/api/blackouts?${query}`).catch(() => null),
+        fetch(`${API_BASE}/api/data?feed=news&${query}`).catch(() => null),
+        fetch(`${API_BASE}/api/data?feed=cognition`).catch(() => null),
+        fetch(`${API_BASE}/api/data?feed=nasa`).catch(() => null),
+        fetch(`${API_BASE}/api/data?feed=earthquakes&${query}`).catch(() => null),
+        fetch(`${API_BASE}/api/data?feed=conflicts&${query}`).catch(() => null),
+        fetch(`${API_BASE}/api/data?feed=civil-unrest&${query}`).catch(() => null),
+        fetch(`${API_BASE}/api/data?feed=firms&${query}`).catch(() => null),
+        fetch(`${API_BASE}/api/data?feed=satellites&${query}`).catch(() => null),
+        fetch(`${API_BASE}/api/data?feed=jamming&${query}`).catch(() => null),
+        fetch(`${API_BASE}/api/data?feed=blackouts&${query}`).catch(() => null),
       ]);
 
       const [newsData, cogData, nasaData, quakeData, conflictData, unrestData, firmsData, satData, jammingData, blackoutData] = await Promise.all([
@@ -941,4 +941,5 @@ export default function App() {
     </div>
   );
 }
+
 
