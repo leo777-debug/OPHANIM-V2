@@ -5,7 +5,7 @@
 
 ## OVERVIEW
 
-OPHANIM-V1 is the world's first autonomous AI intelligence proxy . It fuses live OSINT data streams — aircraft, vessels, satellites, news etc — into a single tactical dashboard powered by an evolving AI analysis engine called **ASI-EVOLVE**.
+OPHANIM-V2 is the world's first autonomous AI intelligence proxy . It fuses live OSINT data streams — aircraft, vessels, satellites, news etc — into a single tactical dashboard powered by an evolving AI analysis engine called **ASI-EVOLVE**.
 
 It doesn't just monitor. It predicts.
 
