@@ -194,13 +194,13 @@ export default function IntelMap({ apiBase, events, selectedEvent, onEventClick,
           lng: String(selectedEvent.lng),
           radius: "50000",
         });
-        const resp = await fetch(`${apiBase}/api/osm-search?${params.toString()}`);
+        const resp = await fetch(`${apiBase}/api/data?feed=osm-search&${params.toString()}`);
         const data = await resp.json();
         setSearchEvents(data.events || []);
         setResults([]);
       } else {
         const params = new URLSearchParams({ q: query, region: region.key });
-        const resp = await fetch(`${apiBase}/api/search?${params.toString()}`);
+        const resp = await fetch(`${apiBase}/api/data?feed=search&${params.toString()}`);
         const data = await resp.json();
         setResults(data.results || []);
       }
@@ -389,4 +389,3 @@ export default function IntelMap({ apiBase, events, selectedEvent, onEventClick,
     </div>
   );
 }
-
