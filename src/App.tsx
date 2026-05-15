@@ -4,12 +4,16 @@ import {
   Activity,
   AlertTriangle,
   Aperture,
+  BarChart3,
   BrainCircuit,
   Building2,
   Cable,
   Camera,
+  ChevronDown,
+  ChevronUp,
   Crosshair,
   Database,
+  FileDown,
   Flame,
   Globe2,
   Landmark,
@@ -31,6 +35,7 @@ import {
   TowerControl,
   Upload,
   Wifi,
+  Zap,
   type LucideIcon,
 } from "lucide-react";
 import { clsx, type ClassValue } from "clsx";
@@ -323,6 +328,11 @@ export default function App() {
           timestamp: new Date().toISOString(),
           path: [...(prev?.path || []).slice(-20), [Number(a.lat), Number(a.lon)]] as [number, number][],
           sourceLayer: source,
+          heading: a.track != null ? Number(a.track) : (a.true_heading != null ? Number(a.true_heading) : undefined),
+          speed: a.gs != null ? Number(a.gs) : undefined,
+          altitude: a.alt_baro != null ? Number(a.alt_baro) : undefined,
+          squawk: a.squawk || undefined,
+          icao: a.hex || undefined,
         };
         liveAircraftRef.current.set(id, event);
         count += 1;
@@ -583,37 +593,61 @@ export default function App() {
     } catch (err) {}
   };
 
-  const handleAnalyze = async (isManual = true) => {
+  const handleAnalyze = async (isManual = true, targetEvent?: IntelligenceEvent) => {
     setIsAnalyzing(isManual);
     if (isManual) {
       setAnalysis(null);
-      setSelectedEvent(null);
+      if (!targetEvent) setSelectedEvent(null);
     }
-    const steps = ["Preparing data", "Loading imagery context", "Fusing live layers", "Writing assessment"];
+    const steps = ["Preparing data", "Running pattern engine", "Loading imagery context", "Fusing live layers", "ASI-EVOLVE writing assessment"];
     if (isManual) {
       for (const step of steps) {
         setAnalysisStatus(step);
         addLog(step);
-        await new Promise((r) => setTimeout(r, 450));
+        await new Promise((r) => setTimeout(r, 380));
       }
     }
     try {
+      const analysisTarget = targetEvent || selectedEvent || displayedEvents.slice(0, 60);
       const response = await fetch(`${API_BASE}/api/analyze`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ intelligenceData: selectedEvent || displayedEvents.slice(0, 60), region: region.label }),
+        body: JSON.stringify({ intelligenceData: analysisTarget, region: region.label }),
       });
       if (response.status === 429) {
         addLog("Analysis throttled");
         return;
       }
       const result = await response.json();
-      setAnalysis({ ...result, timestamp: new Date().toISOString() });
+      const fullResult: AnalysisResult = { ...result, timestamp: new Date().toISOString() };
+      setAnalysis(fullResult);
+
+      // Save new lesson to cognition memory store
+      if (result.new_lesson || result.cognition_update) {
+        const lesson = result.cognition_update || {
+          id: `lesson-${Date.now()}`,
+          title: result.new_lesson.title,
+          lesson: result.new_lesson.lesson,
+          context: result.new_lesson.context,
+          timestamp: new Date().toISOString(),
+          region: region.label,
+          threat_score: result.threat_score,
+        };
+        setCognition((prev) => {
+          if (prev.some((c) => c.title === lesson.title)) return prev;
+          const updated = [lesson, ...prev].slice(0, 30);
+          // Persist to localStorage
+          try { localStorage.setItem("ophanim_cognition", JSON.stringify(updated)); } catch (e) {}
+          return updated;
+        });
+        addLog(`Memory stored: ${lesson.title}`);
+      }
+
       if (!isManual && result.threat_score > 40) {
         setAlerts((prev) => [{ id: Date.now().toString(), msg: result.summary, score: result.threat_score }, ...prev].slice(0, 5));
         playAlarm();
       }
-      addLog("Analysis complete");
+      addLog(`Analysis complete — ${result.threat_level || "GREEN"} (${result.threat_score}%)`);
     } catch (err) {
       addLog("AI analysis error");
     } finally {
@@ -627,6 +661,76 @@ export default function App() {
     setDemoAccess(false);
     await supabase.auth.signOut();
     addLog("Session ended");
+  };
+
+  // Restore cognition from localStorage on mount
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("ophanim_cognition");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) setCognition(parsed);
+      }
+    } catch (e) {}
+  }, []);
+
+  // Export intelligence report as downloadable text
+  const exportReport = () => {
+    if (!analysis) return;
+    const levelColors: Record<string, string> = { GREEN: "🟢", YELLOW: "🟡", ORANGE: "🟠", RED: "🔴", BLACK: "⚫" };
+    const lines = [
+      `═══════════════════════════════════════════════════════`,
+      `  OPHANIM ATLAS — INTELLIGENCE REPORT`,
+      `  Generated: ${new Date().toISOString()}`,
+      `  Region: ${region.label}`,
+      `═══════════════════════════════════════════════════════`,
+      ``,
+      `THREAT ASSESSMENT`,
+      `  Level: ${levelColors[analysis.threat_level || "GREEN"] || ""} ${analysis.threat_level || "GREEN"}`,
+      `  Score: ${analysis.threat_score}/100`,
+      ``,
+      `EXECUTIVE SUMMARY`,
+      `  ${analysis.summary}`,
+      ``,
+      `EVIDENCE`,
+      ...(analysis.evidence || []).map((e, i) => `  ${i + 1}. ${e}`),
+      ``,
+    ];
+    if (analysis.factors && analysis.factors.length > 0) {
+      lines.push(`FACTOR BREAKDOWN`);
+      analysis.factors.forEach((f) => lines.push(`  • ${f.label}: +${f.contribution}pts — ${f.detail}`));
+      lines.push(``);
+    }
+    if (analysis.prediction) {
+      lines.push(`48-72h PREDICTION`, `  ${analysis.prediction}`, ``);
+    }
+    if (analysis.pattern_match) {
+      lines.push(`PATTERN ENGINE`, `  ${analysis.pattern_match}`, ``);
+    }
+    if (analysis.maritime_anomalies?.length) {
+      lines.push(`MARITIME ANOMALIES`);
+      analysis.maritime_anomalies.forEach((a) => lines.push(`  • ${a}`));
+      lines.push(``);
+    }
+    if (analysis.aerial_anomalies?.length) {
+      lines.push(`AERIAL ANOMALIES`);
+      analysis.aerial_anomalies.forEach((a) => lines.push(`  • ${a}`));
+      lines.push(``);
+    }
+    lines.push(`RECOMMENDATION`, `  ${analysis.recommendation}`, ``);
+    lines.push(`DATA SNAPSHOT`, `  Events plotted: ${displayedEvents.length}`, `  Layers active: ${Object.values(layers).filter(Boolean).length}`, ``);
+    lines.push(`═══════════════════════════════════════════════════════`);
+    lines.push(`  OPHANIM ATLAS V2 — ASI-EVOLVE Intelligence Engine`);
+    lines.push(`═══════════════════════════════════════════════════════`);
+
+    const blob = new Blob([lines.join("\n")], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `OPHANIM_REPORT_${region.label.replace(/\s+/g, "_")}_${new Date().toISOString().split("T")[0]}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+    addLog("Report exported");
   };
 
   useEffect(() => {
@@ -680,6 +784,10 @@ export default function App() {
                 timestamp: new Date().toISOString(),
                 path: [...(prev?.path || []).slice(-20), [pos.Latitude, pos.Longitude]] as [number, number][],
                 sourceLayer: "maritime",
+                heading: pos.TrueHeading != null && pos.TrueHeading !== 511 ? Number(pos.TrueHeading) : (pos.CourseOverGround != null ? Number(pos.CourseOverGround) : undefined),
+                speed: pos.SpeedOverGround != null ? Number(pos.SpeedOverGround) : undefined,
+                mmsi: String(meta.MMSI),
+                country: meta.country || undefined,
               };
               liveShipsRef.current.set(id, ship);
               mergeLiveData();
@@ -712,7 +820,7 @@ export default function App() {
     return (
       <div className="intro-screen">
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="intro-card">
-          <div className="intro-card__eyebrow">OPHANIM V1</div>
+          <div className="intro-card__eyebrow">OPHANIM V2</div>
           <h1>Global intelligence map</h1>
           <p>Live feeds need stable network access. Past data can take time to load.</p>
           <button
@@ -739,7 +847,7 @@ export default function App() {
         <div className="brand-row">
           <div className="brand-mark"><Shield className="w-5 h-5" /></div>
           <div>
-            <div className="brand-title">OPHANIM V1</div>
+            <div className="brand-title">OPHANIM V2</div>
             <div className="brand-subtitle">Global OSINT operations</div>
           </div>
           <span className="live-chip">LIVE</span>
@@ -770,9 +878,15 @@ export default function App() {
                   <button onClick={() => { fetchIntel(); fetchAircraftFeed("aviation"); fetchAircraftFeed("militaryAviation"); }} className="primary-action">
                     <RefreshCw className={cn("w-4 h-4", isAnalyzing && "animate-spin")} /> Sync
                   </button>
-                  <label className="secondary-action">
-                    <Upload className={cn("w-4 h-4", isImporting && "animate-bounce")} /> Import
-                    <input type="file" accept=".csv" className="hidden" onChange={(e) => e.target.files?.[0] && handleCSVImport(e.target.files[0])} />
+                  <label className="secondary-action import-label" htmlFor="csv-import-input">
+                    <Upload className={cn("w-4 h-4", isImporting && "animate-bounce")} /> Import CSV
+                    <input
+                      id="csv-import-input"
+                      type="file"
+                      accept=".csv"
+                      style={{ position: "absolute", width: 0, height: 0, overflow: "hidden", opacity: 0 }}
+                      onChange={(e) => e.target.files?.[0] && handleCSVImport(e.target.files[0])}
+                    />
                   </label>
                 </div>
 
@@ -821,11 +935,26 @@ export default function App() {
 
             {activeTab === "memory" && (
               <motion.div key="memory" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="memory-list">
+                <div className="memory-header">
+                  <BrainCircuit className="w-4 h-4" />
+                  <span>ASI-EVOLVE Cognition Store</span>
+                  <span className="memory-count">{cognition.length} lessons</span>
+                </div>
+                {cognition.length === 0 && <div className="empty-list">Run analysis to build memory</div>}
                 {cognition.map((lesson) => (
                   <article key={lesson.id} className="memory-card">
-                    <strong>{lesson.title}</strong>
+                    <div className="memory-card__top">
+                      <strong>{lesson.title}</strong>
+                      {(lesson as any).threat_score != null && (
+                        <span className="memory-score">{(lesson as any).threat_score}%</span>
+                      )}
+                    </div>
                     <p>{lesson.lesson}</p>
-                    <span>{lesson.context}</span>
+                    <div className="memory-card__footer">
+                      <span>{lesson.context}</span>
+                      {(lesson as any).region && <span>{(lesson as any).region}</span>}
+                      {(lesson as any).timestamp && <span>{new Date((lesson as any).timestamp).toLocaleDateString()}</span>}
+                    </div>
                   </article>
                 ))}
               </motion.div>
@@ -852,6 +981,11 @@ export default function App() {
               {isAnalyzing ? <RefreshCw className="w-4 h-4 animate-spin" /> : <BrainCircuit className="w-4 h-4" />}
               {isAnalyzing ? analysisStatus || "Analyzing" : "Run analysis"}
             </button>
+            {analysis && (
+              <button onClick={exportReport} className="outline-button" title="Export intelligence report">
+                <FileDown className="w-4 h-4" /> Export
+              </button>
+            )}
             <button onClick={() => setAutoAnalysisActive((v) => !v)} className={autoAnalysisActive ? "outline-button is-active" : "outline-button"}>
               Auto {autoAnalysisActive ? "on" : "off"}
             </button>
@@ -865,6 +999,7 @@ export default function App() {
             events={displayedEvents}
             selectedEvent={selectedEvent}
             onEventClick={setSelectedEvent}
+            onAnalyzeEvent={(ev) => handleAnalyze(true, ev)}
             region={region}
             showBorders={layers.borders}
           />
@@ -889,30 +1024,120 @@ export default function App() {
                     <div><span>Longitude</span><strong>{selectedEvent.lng.toFixed(5)}</strong></div>
                     <div><span>Layer</span><strong>{layerMeta[inferLayer(selectedEvent)].label}</strong></div>
                     <div><span>Signal</span><strong>{Math.round(selectedEvent.intensity * 100)}%</strong></div>
+                    {selectedEvent.heading != null && <div><span>Heading</span><strong>{Math.round(selectedEvent.heading)}°</strong></div>}
+                    {selectedEvent.speed != null && <div><span>Speed</span><strong>{selectedEvent.speed} kt</strong></div>}
+                    {selectedEvent.altitude != null && <div><span>Alt</span><strong>{Math.round(selectedEvent.altitude).toLocaleString()} ft</strong></div>}
+                    {selectedEvent.squawk && <div><span>Squawk</span><strong>{selectedEvent.squawk}</strong></div>}
+                    {selectedEvent.mmsi && <div><span>MMSI</span><strong>{selectedEvent.mmsi}</strong></div>}
                   </div>
                   <p className="detail-box">{selectedEvent.details}</p>
+                  <button
+                    className="analyze-asset-btn"
+                    onClick={() => handleAnalyze(true, selectedEvent)}
+                    disabled={isAnalyzing}
+                  >
+                    <Zap className="w-3.5 h-3.5" /> Analyze this asset
+                  </button>
                 </section>
               )}
 
               {isAnalyzing && (
                 <section className="analysis-loading">
                   <RefreshCw className="w-8 h-8 animate-spin" />
-                  <div>{analysisStatus || "Analyzing current picture"}</div>
+                  <div className="analysis-loading__step">{analysisStatus || "Analyzing current picture"}</div>
+                  <div className="analysis-loading__sub">ASI-EVOLVE pattern engine active</div>
                 </section>
               )}
 
               {analysis && (
                 <section className="analysis-card">
-                  <span className="section-kicker">Assessment</span>
+                  <div className="analysis-card__header">
+                    <span className="section-kicker">ASI-EVOLVE Assessment</span>
+                    <span className={`threat-badge threat-badge--${(analysis.threat_level || "GREEN").toLowerCase()}`}>
+                      {analysis.threat_level || "GREEN"}
+                    </span>
+                  </div>
                   <div className="score-row">
-                    <strong>{analysis.threat_score}%</strong>
+                    <strong style={{ color: analysis.threat_score >= 65 ? "#ef4444" : analysis.threat_score >= 45 ? "#f97316" : analysis.threat_score >= 25 ? "#eab308" : "#34d399" }}>
+                      {analysis.threat_score}%
+                    </strong>
                     <span>Threat score</span>
+                    {analysis.gps_jamming_detected && <span className="jam-badge">⚡ GPS JAM</span>}
+                    {analysis.gibs_analyzed && <span className="gibs-badge">🛰 GIBS</span>}
                   </div>
-                  <p>{analysis.summary}</p>
-                  <div className="evidence-list">
-                    {(analysis.evidence || []).map((ev, i) => <div key={i}>{ev}</div>)}
-                  </div>
+
+                  <p className="analysis-summary">{analysis.summary}</p>
+
+                  {analysis.prediction && (
+                    <div className="analysis-block analysis-block--prediction">
+                      <div className="analysis-block__label">48-72h Prediction</div>
+                      <div>{analysis.prediction}</div>
+                    </div>
+                  )}
+
+                  {analysis.pattern_match && (
+                    <div className="analysis-block analysis-block--pattern">
+                      <div className="analysis-block__label">Pattern Engine</div>
+                      <div>{analysis.pattern_match}</div>
+                    </div>
+                  )}
+
+                  {analysis.factors && analysis.factors.length > 0 && (
+                    <div className="analysis-factors">
+                      <div className="analysis-block__label">Factor Breakdown</div>
+                      {analysis.factors.map((f: any, i: number) => (
+                        <div key={i} className="factor-row">
+                          <div className="factor-row__bar" style={{ width: `${Math.min(f.contribution, 100)}%` }} />
+                          <div className="factor-row__info">
+                            <span>{f.label}</span>
+                            <strong>+{f.contribution}</strong>
+                          </div>
+                          <div className="factor-row__detail">{f.detail}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {(analysis.evidence || []).length > 0 && (
+                    <div className="evidence-list">
+                      <div className="analysis-block__label">Evidence</div>
+                      {(analysis.evidence || []).map((ev: string, i: number) => <div key={i}>{ev}</div>)}
+                    </div>
+                  )}
+
+                  {analysis.maritime_anomalies && analysis.maritime_anomalies.length > 0 && (
+                    <div className="analysis-block">
+                      <div className="analysis-block__label">Maritime Anomalies</div>
+                      {analysis.maritime_anomalies.map((a: string, i: number) => <div key={i} className="anomaly-item">🚢 {a}</div>)}
+                    </div>
+                  )}
+
+                  {analysis.aerial_anomalies && analysis.aerial_anomalies.length > 0 && (
+                    <div className="analysis-block">
+                      <div className="analysis-block__label">Aerial Anomalies</div>
+                      {analysis.aerial_anomalies.map((a: string, i: number) => <div key={i} className="anomaly-item">✈️ {a}</div>)}
+                    </div>
+                  )}
+
+                  {analysis.seismic_analysis && (
+                    <div className="analysis-block">
+                      <div className="analysis-block__label">Seismic Analysis</div>
+                      <div>{analysis.seismic_analysis}</div>
+                    </div>
+                  )}
+
+                  {analysis.imagery_analysis && (
+                    <div className="analysis-block">
+                      <div className="analysis-block__label">Satellite Imagery</div>
+                      <div>{analysis.imagery_analysis}</div>
+                    </div>
+                  )}
+
                   <div className="recommendation">{analysis.recommendation || "Continue monitoring"}</div>
+
+                  <button onClick={exportReport} className="export-report-btn">
+                    <FileDown className="w-3.5 h-3.5" /> Export Intelligence Report
+                  </button>
                 </section>
               )}
             </div>
@@ -941,4 +1166,6 @@ export default function App() {
     </div>
   );
 }
+
+
 
