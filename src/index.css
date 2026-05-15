@@ -1176,3 +1176,287 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ── Import label fix ─────────────────────────────────────────── */
+.import-label {
+  position: relative;
+  cursor: pointer;
+}
+
+/* ── Threat level badge ───────────────────────────────────────── */
+.threat-badge {
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  border: 1px solid transparent;
+}
+.threat-badge--green  { background: rgba(22,163,74,0.18); color: #86efac; border-color: rgba(52,211,153,0.4); }
+.threat-badge--yellow { background: rgba(161,130,6,0.22); color: #fde68a; border-color: rgba(234,179,8,0.4); }
+.threat-badge--orange { background: rgba(154,52,18,0.22); color: #fed7aa; border-color: rgba(249,115,22,0.4); }
+.threat-badge--red    { background: rgba(127,29,29,0.28); color: #fca5a5; border-color: rgba(239,68,68,0.45); }
+.threat-badge--black  { background: rgba(20,20,20,0.7);   color: #e2e8f0; border-color: rgba(148,163,184,0.3); }
+
+/* ── Analysis card header ─────────────────────────────────────── */
+.analysis-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.analysis-summary {
+  margin-top: 10px;
+  color: #cbd5e1;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* ── GPS jam / GIBS badges ────────────────────────────────────── */
+.jam-badge, .gibs-badge {
+  font-size: 10px;
+  font-weight: 900;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+.jam-badge  { background: rgba(239,68,68,0.18); color: #fca5a5; border: 1px solid rgba(239,68,68,0.35); }
+.gibs-badge { background: rgba(139,92,246,0.18); color: #c4b5fd; border: 1px solid rgba(139,92,246,0.35); }
+
+/* ── Analysis blocks (prediction, pattern, domains) ───────────── */
+.analysis-block {
+  margin-top: 10px;
+  padding: 10px;
+  border: 1px solid rgba(148,163,184,0.14);
+  border-radius: 5px;
+  background: rgba(2,6,13,0.28);
+  color: #cbd5e1;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.analysis-block--prediction { border-color: rgba(56,189,248,0.25); background: rgba(56,189,248,0.06); }
+.analysis-block--pattern    { border-color: rgba(139,92,246,0.28); background: rgba(139,92,246,0.07); }
+
+.analysis-block__label {
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+/* ── Factor breakdown bars ────────────────────────────────────── */
+.analysis-factors {
+  margin-top: 10px;
+  padding: 10px;
+  border: 1px solid rgba(148,163,184,0.14);
+  border-radius: 5px;
+  background: rgba(2,6,13,0.22);
+  display: grid;
+  gap: 7px;
+}
+.factor-row {
+  position: relative;
+  border-radius: 4px;
+  overflow: hidden;
+  background: rgba(15,23,42,0.5);
+  padding: 6px 8px;
+}
+.factor-row__bar {
+  position: absolute;
+  top: 0; left: 0; bottom: 0;
+  background: rgba(56,189,248,0.12);
+  border-radius: 4px;
+  transition: width 0.6s ease;
+}
+.factor-row__info {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #dbeafe;
+}
+.factor-row__info strong { color: #7dd3fc; font-size: 11px; }
+.factor-row__detail {
+  position: relative;
+  font-size: 10px;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+/* ── Anomaly items ────────────────────────────────────────────── */
+.anomaly-item {
+  font-size: 12px;
+  color: #cbd5e1;
+  padding: 3px 0;
+  border-bottom: 1px solid rgba(148,163,184,0.08);
+}
+.anomaly-item:last-child { border-bottom: none; }
+
+/* ── Analyze asset button ─────────────────────────────────────── */
+.analyze-asset-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+  width: 100%;
+  justify-content: center;
+  padding: 9px;
+  border: 1px solid rgba(56,189,248,0.4);
+  border-radius: 4px;
+  color: #7dd3fc;
+  font-size: 12px;
+  font-weight: 800;
+  background: rgba(56,189,248,0.07);
+  transition: background 150ms, border-color 150ms;
+}
+.analyze-asset-btn:hover { background: rgba(56,189,248,0.15); border-color: rgba(56,189,248,0.6); }
+.analyze-asset-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* ── Export report button ─────────────────────────────────────── */
+.export-report-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+  width: 100%;
+  justify-content: center;
+  padding: 9px;
+  border: 1px solid rgba(52,211,153,0.4);
+  border-radius: 4px;
+  color: #86efac;
+  font-size: 12px;
+  font-weight: 800;
+  background: rgba(22,163,74,0.08);
+  transition: background 150ms, border-color 150ms;
+}
+.export-report-btn:hover { background: rgba(22,163,74,0.16); border-color: rgba(52,211,153,0.6); }
+
+/* ── Analysis loading sub-text ────────────────────────────────── */
+.analysis-loading__step { font-size: 14px; color: #dbeafe; font-weight: 700; }
+.analysis-loading__sub  { font-size: 11px; color: #64748b; margin-top: 4px; }
+
+/* ── Military marker ring ─────────────────────────────────────── */
+.intel-marker.is-military {
+  animation: mil-pulse 2s ease-in-out infinite;
+}
+@keyframes mil-pulse {
+  0%, 100% { box-shadow: 0 0 0 2px #ef4444, 0 0 14px rgba(239,68,68,0.5); }
+  50%       { box-shadow: 0 0 0 2px #ef4444, 0 0 24px rgba(239,68,68,0.7); }
+}
+
+/* ── Rich Leaflet popup ───────────────────────────────────────── */
+.intel-popup .leaflet-popup-content-wrapper {
+  background: #101824;
+  border: 1px solid rgba(148,163,184,0.2);
+  border-radius: 6px;
+  box-shadow: 0 16px 40px rgba(0,0,0,0.4);
+  padding: 0;
+}
+.intel-popup .leaflet-popup-content { margin: 0; }
+.intel-popup .leaflet-popup-tip     { background: #101824; }
+
+.popup-card--rich { padding: 12px; min-width: 220px; max-width: 290px; }
+.popup-card__badge {
+  display: inline-block;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  padding: 2px 6px;
+  border-radius: 3px;
+  margin-bottom: 6px;
+  background: rgba(56,189,248,0.15);
+  color: #7dd3fc;
+  border: 1px solid rgba(56,189,248,0.3);
+}
+.popup-card__badge[data-type="aircraft"] { background: rgba(52,211,153,0.12); color: #6ee7b7; border-color: rgba(52,211,153,0.3); }
+.popup-card__badge[data-type="vessel"]   { background: rgba(56,189,248,0.12); color: #7dd3fc; border-color: rgba(56,189,248,0.3); }
+.popup-card__badge[data-type="satellite"]{ background: rgba(167,139,250,0.15); color: #c4b5fd; border-color: rgba(167,139,250,0.3); }
+.popup-card__badge[data-type="conflict"] { background: rgba(251,113,133,0.12); color: #fda4af; border-color: rgba(251,113,133,0.3); }
+
+.popup-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 5px;
+  margin: 8px 0;
+}
+.popup-grid div {
+  background: rgba(2,6,13,0.3);
+  border: 1px solid rgba(148,163,184,0.12);
+  border-radius: 4px;
+  padding: 5px 7px;
+}
+.popup-grid span { display: block; font-size: 9px; color: #64748b; font-weight: 700; text-transform: uppercase; }
+.popup-grid strong { display: block; font-size: 12px; color: #f8fafc; margin-top: 1px; }
+
+.popup-analyze-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  width: 100%;
+  margin-top: 8px;
+  padding: 7px;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 800;
+  color: #7dd3fc;
+  background: rgba(56,189,248,0.08);
+  border: 1px solid rgba(56,189,248,0.3);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 140ms;
+}
+.popup-analyze-btn:hover { background: rgba(56,189,248,0.18); }
+
+/* ── Memory card enhancements ─────────────────────────────────── */
+.memory-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 2px 10px;
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 700;
+  border-bottom: 1px solid rgba(148,163,184,0.1);
+  margin-bottom: 8px;
+}
+.memory-count {
+  margin-left: auto;
+  background: rgba(56,189,248,0.12);
+  color: #7dd3fc;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  font-weight: 900;
+}
+.memory-card__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+.memory-score {
+  font-size: 10px;
+  font-weight: 900;
+  color: #fda4af;
+  background: rgba(251,113,133,0.12);
+  border: 1px solid rgba(251,113,133,0.2);
+  border-radius: 3px;
+  padding: 1px 5px;
+  flex-shrink: 0;
+}
+.memory-card__footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+.memory-card__footer span {
+  font-size: 10px;
+  color: #64748b;
+  background: rgba(2,6,13,0.25);
+  border: 1px solid rgba(148,163,184,0.1);
+  border-radius: 3px;
+  padding: 1px 5px;
+}
