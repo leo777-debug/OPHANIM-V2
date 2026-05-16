@@ -271,49 +271,49 @@ export default function App() {
   };
 
   const handleCSVImport = (file: File) => {
-    setIsImporting(true);
-    addLog(`Importing ${file.name}`);
-    Papa.parse(file, {
-      header: true,
-      skipEmptyLines: true,
-      complete: (results) => {
-        const importedEvents: IntelligenceEvent[] = results.data.map((row: any, i: number) => {
-  // ✅ FIX: try every possible coordinate column name, case-insensitive
-  const findField = (...keys: string[]) => {
-    for (const k of keys) {
-      const found = Object.keys(row).find(rk => rk.toLowerCase() === k.toLowerCase());
-      if (found && row[found] !== '' && row[found] != null) return row[found];
-    }
-    return undefined;
-  };
-  const rawLat = findField('lat','latitude','LAT','LATITUDE','Lat','Latitude','y','Y');
-  const rawLng = findField('lng','lon','longitude','LON','LNG','LONGITUDE','Lon','Long','x','X');
-  return {
-    id: row.id || `csv-${Date.now()}-${i}`,
-    type: (["vessel","aircraft","conflict","news","satellite","facility","airport","infrastructure"].includes(row.type) ? row.type : "news") as any,
-   lat: parseFloat(Object.keys(row).find(k => /^lat(itude)?$/i.test(k)) ? row[Object.keys(row).find(k => /^lat(itude)?$/i.test(k))!] : "NaN"),
-lng: parseFloat(Object.keys(row).find(k => /^l(on|ng)(gitude)?$/i.test(k)) ? row[Object.keys(row).find(k => /^l(on|ng)(gitude)?$/i.test(k))!] : "NaN"),
+  setIsImporting(true);
+  addLog(`Importing ${file.name}`);
+  Papa.parse(file, {
+    header: true,
+    skipEmptyLines: true,
+    complete: (results) => {
+      const importedEvents: IntelligenceEvent[] = (results.data as any[]).map((row, i) => {
+        const findField = (...keys: string[]) => {
+          for (const k of keys) {
+            const found = Object.keys(row).find(rk => rk.toLowerCase() === k.toLowerCase());
+            if (found && row[found] !== '' && row[found] != null) return row[found];
+          }
+          return undefined;
+        };
+        const rawLat = findField('lat','latitude','LAT','LATITUDE','Lat','Latitude','y','Y');
+        const rawLng = findField('lng','lon','longitude','LON','LNG','LONGITUDE','Lon','Long','x','X');
+        return {
+          id: row.id || `csv-${Date.now()}-${i}`,
+          type: (["vessel","aircraft","conflict","news","satellite","facility","airport","infrastructure"].includes(row.type) ? row.type : "news") as any,
+          lat: parseFloat(rawLat),
+          lng: parseFloat(rawLng),
           label: row.label || "Imported object",
           intensity: parseFloat(row.intensity) || 0.5,
           details: row.details || "External data import.",
           timestamp: row.timestamp || new Date().toISOString(),
           sourceLayer: row.sourceLayer || "news",
-        })).filter((e) => !Number.isNaN(e.lat) && !Number.isNaN(e.lng));
+        };
+      }).filter((e) => !Number.isNaN(e.lat) && !Number.isNaN(e.lng));
 
-        if (importedEvents.length > 0) {
-          setEvents((prev) => [...prev, ...importedEvents]);
-          addLog(`Imported ${importedEvents.length} records`);
-        } else {
-          addLog("Import failed: no valid coordinates");
-        }
-        setIsImporting(false);
-      },
-      error: (error) => {
-        addLog(`Import error: ${error.message}`);
-        setIsImporting(false);
-      },
-    });
-  };
+      if (importedEvents.length > 0) {
+        setEvents((prev) => [...prev, ...importedEvents]);
+        addLog(`Imported ${importedEvents.length} records`);
+      } else {
+        addLog("Import failed: no valid coordinates. Use columns: lat, lng (or latitude, longitude)");
+      }
+      setIsImporting(false);
+    },
+    error: (error) => {
+      addLog(`Import error: ${error.message}`);
+      setIsImporting(false);
+    },
+  });
+};
 
   const fetchAircraftFeed = useCallback(async (source: "aviation" | "militaryAviation") => {
     try {
