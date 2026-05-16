@@ -291,8 +291,8 @@ export default function App() {
   return {
     id: row.id || `csv-${Date.now()}-${i}`,
     type: (["vessel","aircraft","conflict","news","satellite","facility","airport","infrastructure"].includes(row.type) ? row.type : "news") as any,
-    lat: parseFloat(rawLat),
-    lng: parseFloat(rawLng),
+   lat: parseFloat(Object.keys(row).find(k => /^lat(itude)?$/i.test(k)) ? row[Object.keys(row).find(k => /^lat(itude)?$/i.test(k))!] : "NaN"),
+lng: parseFloat(Object.keys(row).find(k => /^l(on|ng)(gitude)?$/i.test(k)) ? row[Object.keys(row).find(k => /^l(on|ng)(gitude)?$/i.test(k))!] : "NaN"),
           label: row.label || "Imported object",
           intensity: parseFloat(row.intensity) || 0.5,
           details: row.details || "External data import.",
