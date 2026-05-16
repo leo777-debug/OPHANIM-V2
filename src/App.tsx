@@ -277,11 +277,22 @@ export default function App() {
       header: true,
       skipEmptyLines: true,
       complete: (results) => {
-        const importedEvents: IntelligenceEvent[] = results.data.map((row: any, i: number) => ({
-          id: row.id || `csv-${Date.now()}-${i}`,
-          type: (["vessel", "aircraft", "conflict", "news", "satellite", "facility", "airport", "infrastructure"].includes(row.type) ? row.type : "news") as any,
-          lat: parseFloat(row.lat),
-          lng: parseFloat(row.lng),
+        const importedEvents: IntelligenceEvent[] = results.data.map((row: any, i: number) => {
+  // ✅ FIX: try every possible coordinate column name, case-insensitive
+  const findField = (...keys: string[]) => {
+    for (const k of keys) {
+      const found = Object.keys(row).find(rk => rk.toLowerCase() === k.toLowerCase());
+      if (found && row[found] !== '' && row[found] != null) return row[found];
+    }
+    return undefined;
+  };
+  const rawLat = findField('lat','latitude','LAT','LATITUDE','Lat','Latitude','y','Y');
+  const rawLng = findField('lng','lon','longitude','LON','LNG','LONGITUDE','Lon','Long','x','X');
+  return {
+    id: row.id || `csv-${Date.now()}-${i}`,
+    type: (["vessel","aircraft","conflict","news","satellite","facility","airport","infrastructure"].includes(row.type) ? row.type : "news") as any,
+    lat: parseFloat(rawLat),
+    lng: parseFloat(rawLng),
           label: row.label || "Imported object",
           intensity: parseFloat(row.intensity) || 0.5,
           details: row.details || "External data import.",
